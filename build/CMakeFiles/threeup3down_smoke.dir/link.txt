@@ -1,0 +1,1 @@
+/usr/bin/clang++ -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/threeup3down_smoke.dir/tests/smoke.cpp.o -o threeup3down_smoke  engine/libthreeup3down_engine.a

@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/Users/atharvarao/Documents/3up3down/build",
+  "command": "/usr/bin/clang++  -I/Users/atharvarao/Documents/3up3down/engine/.. -g -std=c++17 -arch arm64 -o CMakeFiles/threeup3down_smoke.dir/tests/smoke.cpp.o -c /Users/atharvarao/Documents/3up3down/tests/smoke.cpp",
+  "file": "/Users/atharvarao/Documents/3up3down/tests/smoke.cpp",
+  "output": "CMakeFiles/threeup3down_smoke.dir/tests/smoke.cpp.o"
+},
+{
+  "directory": "/Users/atharvarao/Documents/3up3down/build/engine",
+  "command": "/usr/bin/clang++  -I/Users/atharvarao/Documents/3up3down/engine/.. -g -std=c++17 -arch arm64 -o CMakeFiles/threeup3down_engine.dir/engine.cpp.o -c /Users/atharvarao/Documents/3up3down/engine/engine.cpp",
+  "file": "/Users/atharvarao/Documents/3up3down/engine/engine.cpp",
+  "output": "engine/CMakeFiles/threeup3down_engine.dir/engine.cpp.o"
+}
+]

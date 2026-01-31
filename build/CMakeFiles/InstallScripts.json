@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/atharvarao/Documents/3up3down/build/cmake_install.cmake",
-		"/Users/atharvarao/Documents/3up3down/build/engine/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

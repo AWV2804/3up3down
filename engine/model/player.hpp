@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <optional>
 
 
@@ -7,6 +8,12 @@ enum class HitterType { LineDrive, GroundBall, FlyBall, PopFly, Grounder, Flyer 
 enum class Position { P, C, _1B, _2B, _3B, SS, LF, CF, RF, DH, INF_UTIL, OF_UTIL };
 enum class Handedness { LEFT, RIGHT, SWITCH };
 enum class PitchType { FASTBALL, SLIDER, CURVEBALL, CHANGEUP, CUTTER, SINKER, SPLITTER, KNUCKLEBALL };
+
+template<typename T>
+struct Ratings {
+    T current;
+    T potential;
+};
 
 struct BatterRatings {
     float contact;
@@ -60,17 +67,18 @@ struct PitchTypeRatings {
 struct Player {
     std::string name;
     int age;
+    bool is_pitcher;
+    bool is_two_way_player;
 
     Handedness bats;
     Handedness throws; // also counts as pitching hand
 
-    BatterRatings batterRatings;
-    std::optional<PitcherRatings> pitcherRatings;
-    DefenseRatings defenseRatings;
-
+    Ratings<BatterRatings> batterRatings;
+    Ratings<PitcherRatings> pitcherRatings;
+    Ratings<DefenseRatings> defenseRatings;
     // Optional ratings
     // Catcher
-    std::optional<CatcherRatings> catcherRatings;
+    Ratings<CatcherRatings> catcherRatings;
 
     // Pitcher
     std::optional<PitchTypeRatings> pitchTypeRatings;

@@ -1,5 +1,6 @@
 add_library(threeup3down_engine STATIC
   engine.cpp
+  sim/plate_appearence.cpp
 )
 
 target_include_directories(threeup3down_engine

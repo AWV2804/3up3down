@@ -1,2 +1,0 @@
-/usr/bin/ar qc libthreeup3down_engine.a CMakeFiles/threeup3down_engine.dir/engine.cpp.o
-/usr/bin/ranlib libthreeup3down_engine.a

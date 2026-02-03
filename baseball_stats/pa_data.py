@@ -61,6 +61,22 @@ def map_events_to_outcomes(pas: pd.DataFrame) -> pd.DataFrame:
     return pas
 
 
+def add_platoon_info(pas: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add platoon matchup information to PA data.
+    Creates 'platoon_same' (1 = same hand, 0 = opposite) and 'platoon_matchup' ('same' or 'opposite').
+    """
+    pas = pas.copy()
+    if "stand" not in pas.columns or "p_throws" not in pas.columns:
+        return pas
+    
+    # Same hand = 1, opposite = 0
+    same_hand = (pas["stand"].str.upper() == pas["p_throws"].str.upper())
+    pas["platoon_same"] = same_hand.astype(int)
+    pas["platoon_matchup"] = same_hand.map({True: "same", False: "opposite"})
+    return pas
+
+
 def load_pa_dataset(start_dt: str, end_dt: str) -> pd.DataFrame:
     """
     Load PA-level dataset with outcome and basic context for modeling.
@@ -74,4 +90,6 @@ def load_pa_dataset(start_dt: str, end_dt: str) -> pd.DataFrame:
     for col in ["balls", "strikes"]:
         if col in pas.columns:
             pas[col] = pd.to_numeric(pas[col], errors="coerce").fillna(0).astype(int)
+    # Add platoon information
+    pas = add_platoon_info(pas)
     return pas

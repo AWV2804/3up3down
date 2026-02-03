@@ -13,6 +13,7 @@ Model choice (accuracy-focused, no compute limits):
 """
 import json
 import pickle
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,9 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from xgboost import XGBClassifier
+
+# Suppress FutureWarnings from pybaseball's deprecated pandas usage
+warnings.filterwarnings('ignore', category=FutureWarning, module='pybaseball')
 
 import pybaseball
 from pa_data import load_pa_dataset, OUTCOME_ORDER
@@ -96,14 +100,27 @@ def outcome_probs_for_sim(clf, le, count_id: int, platoon_same: int, inning: int
     return dict(zip(le.classes_, probs))
 
 
-def league_rates_from_data(pas: pd.DataFrame) -> dict:
+def league_rates_from_data(pas: pd.DataFrame, platoon_filter: str = None) -> dict:
     """
     Simple fallback: empirical outcome rates from data (no ML).
     Use when you just need overall walk%, hit%, K%, etc. for the sim.
+    
+    Args:
+        pas: DataFrame with plate appearance data
+        platoon_filter: If "same" or "opposite", filter to that platoon matchup.
+                       If None, use all data.
     """
     from pa_data import map_events_to_outcomes
     if "outcome" not in pas.columns:
         pas = map_events_to_outcomes(pas)
+    
+    # Filter by platoon matchup if specified
+    if platoon_filter is not None:
+        if "platoon_matchup" not in pas.columns:
+            from pa_data import add_platoon_info
+            pas = add_platoon_info(pas)
+        pas = pas[pas["platoon_matchup"] == platoon_filter].copy()
+    
     n = len(pas)
     rates = {}
     for outcome in OUTCOME_ORDER:
@@ -125,16 +142,35 @@ def main():
         return
 
     print(f"Loaded {len(pas)} plate appearances.")
+    
+    # Check platoon distribution
+    if "platoon_matchup" in pas.columns:
+        platoon_counts = pas["platoon_matchup"].value_counts()
+        print(f"\nPlatoon matchup distribution:")
+        for matchup, count in platoon_counts.items():
+            pct = count / len(pas) * 100
+            print(f"  {matchup}: {count:,} ({pct:.1f}%)")
 
-    # Empirical rates (no ML) – always useful for the sim
+    # Overall empirical rates (no ML) – always useful for the sim
     rates = league_rates_from_data(pas)
     out_path = Path(__file__).parent / "pa_outcome_rates.json"
     with open(out_path, "w") as f:
         json.dump(rates, f, indent=2)
-    print(f"Wrote league outcome rates -> {out_path}")
+    print(f"\nWrote overall league outcome rates -> {out_path}")
 
-    # Train ML model for context-dependent probs
-    print("Training outcome classifier...")
+    # Separate rates by platoon matchup
+    if "platoon_matchup" in pas.columns:
+        print("\nGenerating platoon-specific rates...")
+        for matchup in ["same", "opposite"]:
+            matchup_rates = league_rates_from_data(pas, platoon_filter=matchup)
+            matchup_path = Path(__file__).parent / f"pa_outcome_rates_{matchup}.json"
+            with open(matchup_path, "w") as f:
+                json.dump(matchup_rates, f, indent=2)
+            print(f"  Wrote {matchup}-hand rates -> {matchup_path}")
+            print(f"    Sample: Walk={matchup_rates['Walk']:.4f}, K={matchup_rates['Strikeout']:.4f}, HR={matchup_rates['HR']:.4f}")
+
+    # Train ML model for context-dependent probs (uses all data, includes platoon as feature)
+    print("\nTraining outcome classifier...")
     clf, le, meta = train_model(pas)
     print(f"Test accuracy: {meta['accuracy']:.4f}")
 
@@ -143,9 +179,25 @@ def main():
         pickle.dump({"clf": clf, "le": le, "meta": meta}, f)
     print(f"Saved model -> {model_path}")
 
+    # Optional: Train separate models for each platoon matchup
+    if "platoon_matchup" in pas.columns:
+        print("\nTraining platoon-specific models...")
+        for matchup in ["same", "opposite"]:
+            matchup_pas = pas[pas["platoon_matchup"] == matchup].copy()
+            if len(matchup_pas) < 1000:  # Need minimum data
+                print(f"  Skipping {matchup}-hand model (only {len(matchup_pas)} PAs)")
+                continue
+            
+            print(f"  Training {matchup}-hand model ({len(matchup_pas):,} PAs)...")
+            matchup_clf, matchup_le, matchup_meta = train_model(matchup_pas)
+            matchup_model_path = Path(__file__).parent / f"pa_outcome_model_{matchup}.pkl"
+            with open(matchup_model_path, "wb") as f:
+                pickle.dump({"clf": matchup_clf, "le": matchup_le, "meta": matchup_meta}, f)
+            print(f"    Saved {matchup}-hand model -> {matchup_model_path} (accuracy: {matchup_meta['accuracy']:.4f})")
+
     # Example: probs for 0-0 count, opposite hand
     probs = outcome_probs_for_sim(clf, le, count_id=0, platoon_same=0, feature_names=meta.get("feature_names"))
-    print("Example probs (0-0, opposite hand):", {k: round(v, 4) for k, v in probs.items()})
+    print("\nExample probs (0-0, opposite hand):", {k: round(v, 4) for k, v in probs.items()})
 
 
 if __name__ == "__main__":
